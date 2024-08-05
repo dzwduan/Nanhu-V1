@@ -94,5 +94,5 @@ class RenameTable1(implicit p: Parameter) extends CoreModule {
 
 object RenameTable1 extends App {
   implicit val p: nanhu.Parameter = new Parameter
-  ChiselStage.emitSystemVerilogFile(new RenameTable1)
+  ChiselStage.emitSystemVerilogFile(new RenameTable)
 }
