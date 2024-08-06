@@ -32,7 +32,7 @@ class RenameTable(implicit p: Parameter) extends CoreModule {
   val arch_table = RegInit(rename_table_init)
 
   val spec_table_next = WireInit(spec_table)
-  
+
 
   for (w <- io.archWritePorts) {
     when (w.wen) {

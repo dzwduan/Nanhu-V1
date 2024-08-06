@@ -5,47 +5,44 @@ import chisel3.util._
 import nanhu._
 import _root_.circt.stage.ChiselStage
 
-
+// 维护preg的引用计数
 class RefCounter(implicit p : Parameter) extends CoreModule {
   val io = IO(new Bundle {
-    val allocate =  Vec(RenameWidth, Flipped(ValidIO(UInt(PhyRegIdxWidth.W))))
-    val deallocate = Vec(CommitWidth, Flipped(ValidIO(UInt(PhyRegIdxWidth.W))))
-    val freeRegs = Vec(CommitWidth, ValidIO(UInt(PhyRegIdxWidth.W)))
+    val allocate =  Vec(RenameWidth, Flipped(ValidIO(UInt(PhyRegIdxWidth.W))))  // rename
+    val deallocate = Vec(CommitWidth, Flipped(ValidIO(UInt(PhyRegIdxWidth.W)))) // commit
+    val freeRegs = Vec(CommitWidth, ValidIO(UInt(PhyRegIdxWidth.W))) // 返回释放的物理寄存器号
   })
 
-  val refcnt = RegInit(VecInit.fill(32)(0.U(PhyRegIdxWidth.W)))
+  val refcnt = RegInit(VecInit.fill(p.NRPhyRegs)(0.U(PhyRegIdxWidth.W)))
 
-  val refcntInc = Wire(refcnt)
-  val refcntDec = Wire(refcnt)
-  val refcntNext = Wire(refcnt)
+  val refcntInc = WireInit(refcnt)
+  val refcntDec = WireInit(refcnt)
+  val refcntNext = WireInit(refcnt)
 
-  val allocate = io.allocate
-  val deallocate = io.deallocate
+  val allocate = RegNext(io.allocate)
+  val deallocate =  RegNext(io.deallocate)
+  val freeregs = io.freeRegs
 
-  // size 默认
-  val allocateOH = allocate.map(i => UIntToOH(i.bits, p.NRPhyRegs))
-  val deallocateOH = deallocate.map(i => UIntToOH(i.bits, p.NRPhyRegs))
+  for ( i <- 0 until CommitWidth) {
+  
+    // 从非零值变为零值
+    val isNonZero =  refcnt(deallocate(i).bits) =/= 0.U
 
-  // update refcnt , 不考虑0号物理寄存器
-  for (i <- 1 until p.NRPhyRegs) {
-    // 检测第i项是否存在valid && allocate, 只有0/1
-    refcntInc(i) := PopCount(allocate.zip(allocateOH).map(a => a._1.valid && a._2(i)))
-    refcntDec(i) := PopCount(deallocate.zip(deallocateOH).map(a => a._1.valid && a._2(i)))
+    // 不重复释放
+    val hasDup = deallocate.take(i).map(d => d.valid && deallocate(i).bits === d.bits)
+    val dupBlock = if (i == 0) false.B else VecInit(hasDup).asUInt.orR
+
+    freeregs(i).valid := RegNext(isNonZero && !dupBlock) && RegNext(deallocate(i).valid)
+    freeregs(i).bits  := Mux(freeregs(i).valid, RegNext(deallocate(i).bits), 0.U)
+  }
+
+  for (i <- 0 until p.NRPhyRegs) {
+    refcntInc(i) := PopCount(allocate.map(a => a.valid && a.bits === i.U))
+    refcntDec(i) := PopCount(deallocate.map(d => d.valid && d.bits === i.U))
     refcntNext(i) := refcnt(i) + refcntInc(i) - refcntDec(i)
     refcnt(i) := refcntNext(i)
   }
-
-  // update freeRegs
-  // valid需要考虑 重复释放 以及 引用计数需要从非零变为0的过程
-  for ((deallo, i) <- deallocate.zipWithIndex) {
-    io.freeRegs(i).bits := deallo.bits
-
-    val isNoneZero = deallo.valid && deallo.bits  =/= 0.U
-    //TODO: i need if i = 3 , check deallo.bits =?= deallocate(0/1/2).bits
-    val hasDup = deallocate.take(i).map{de => de.valid && (de.bits === deallocate(i).bits)}
-    val dupBlock = if (i==0) false.B else VecInit(hasDup).asUInt.orR
-    io.freeRegs(i).valid := RegNext(isNoneZero && !dupBlock)
-  }
+  
 }
 
 
