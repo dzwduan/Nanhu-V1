@@ -49,7 +49,7 @@ class RefCounter(implicit p : Parameter) extends CoreModule {
 }
 
 
-object RenameTable1 extends App {
+object RefCounter extends App {
   implicit val p: nanhu.Parameter = new Parameter
   ChiselStage.emitSystemVerilogFile(new RefCounter)
 }
