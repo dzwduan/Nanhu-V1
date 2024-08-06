@@ -8,8 +8,8 @@ import _root_.circt.stage.ChiselStage
 
 class RefCounter(implicit p : Parameter) extends CoreModule {
   val io = IO(new Bundle {
-    val allocate = Vec(RenameWidth, ValidIO(UInt(PhyRegIdxWidth.W)))
-    val deallocate = Vec(CommitWidth, ValidIO(UInt(PhyRegIdxWidth.W)))
+    val allocate =  Vec(RenameWidth, Flipped(ValidIO(UInt(PhyRegIdxWidth.W))))
+    val deallocate = Vec(CommitWidth, Flipped(ValidIO(UInt(PhyRegIdxWidth.W))))
     val freeRegs = Vec(CommitWidth, ValidIO(UInt(PhyRegIdxWidth.W)))
   })
 

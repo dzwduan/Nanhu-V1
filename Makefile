@@ -33,6 +33,6 @@ sim:
 	@echo "Write this Makefile by yourself."
 
 wave:
-	gtkwave build/workdir-default/trace.vcd
+	gtkwave build/workdir-default/trace.vcd -A rename.gtkw
 
 

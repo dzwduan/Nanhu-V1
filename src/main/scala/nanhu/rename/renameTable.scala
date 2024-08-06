@@ -16,6 +16,8 @@ class RatWritePort(implicit p: Parameter) extends CoreBundle {
   val data = UInt(PhyRegIdxWidth.W)
 }
 
+//TODO: 当前的bug在于, write直接写入spec_table，导致read addr发出时，spec_table已经有了数据，可以当拍读到，与验证文档不符合
+
 class RenameTable(implicit p: Parameter) extends CoreModule {
   val io = IO(new Bundle {
     val readPorts = Vec(3 * RenameWidth, new RatReadPort)
@@ -27,7 +29,7 @@ class RenameTable(implicit p: Parameter) extends CoreModule {
   val spec_table = RegInit(rename_table_init)
   val arch_table = RegInit(rename_table_init)
 // 用于实际作用，spec_table只用于最后的输出更新
-  val spec_table_next = Wire(spec_table)
+  val spec_table_next = WireInit(spec_table)
 //TODO: why spec_table_next
   val t1_rdata = io.readPorts.map(r => RegNext(Mux(r.hold, r.data, spec_table_next(r.addr))))
   val t1_raddr = io.readPorts.map(r => RegEnable(r.addr, !r.hold))
@@ -60,39 +62,39 @@ class RenameTable(implicit p: Parameter) extends CoreModule {
 }
 
 
-class RenameTable1(implicit p: Parameter) extends CoreModule {
-  val io = IO(new Bundle {
-    val readPorts = Vec(3 * RenameWidth, new RatReadPort)
-    val specWritePorts = Vec(CommitWidth, Input(new RatWritePort))
-    val archWritePorts = Vec(CommitWidth, Input(new RatWritePort))
-  })
+// class RenameTable1(implicit p: Parameter) extends CoreModule {
+//   val io = IO(new Bundle {
+//     val readPorts = Vec(3 * RenameWidth, new RatReadPort)
+//     val specWritePorts = Vec(CommitWidth, Input(new RatWritePort))
+//     val archWritePorts = Vec(CommitWidth, Input(new RatWritePort))
+//   })
 
-  val rename_table_init = VecInit.tabulate(32)(i => 0.U(PhyRegIdxWidth.W))
-  val spec_table = RegInit(rename_table_init)
-  val arch_table = RegInit(rename_table_init)
+//   val rename_table_init = VecInit.tabulate(32)(i => 0.U(PhyRegIdxWidth.W))
+//   val spec_table = RegInit(rename_table_init)
+//   val arch_table = RegInit(rename_table_init)
 
-  // 只使用一个周期，不添加流水，禁用hold
+//   // 只使用一个周期，不添加流水，禁用hold
 
-  // read rename table, rename stage
-  for (r <- io.readPorts) {
-    r.data := spec_table(r.addr)
-  }
+//   // read rename table, rename stage
+//   for (r <- io.readPorts) {
+//     r.data := spec_table(r.addr)
+//   }
 
-  // write rename table, commit stage
-  for (w <- io.specWritePorts) {
-    when (w.wen) {
-      spec_table(w.addr) := w.data
-    }
-  }
+//   // write rename table, commit stage
+//   for (w <- io.specWritePorts) {
+//     when (w.wen) {
+//       spec_table(w.addr) := w.data
+//     }
+//   }
 
-  for (arch <- io.archWritePorts) {
-    when (arch.wen) {
-      arch_table(arch.addr) := arch.data
-    }
-  }
-}
+//   for (arch <- io.archWritePorts) {
+//     when (arch.wen) {
+//       arch_table(arch.addr) := arch.data
+//     }
+//   }
+// }
 
-object RenameTable1 extends App {
+object RenameTable extends App {
   implicit val p: nanhu.Parameter = new Parameter
   ChiselStage.emitSystemVerilogFile(new RenameTable)
 }
