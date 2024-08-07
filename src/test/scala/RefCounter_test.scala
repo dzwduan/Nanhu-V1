@@ -40,7 +40,7 @@ class RefCounter_test extends AnyFreeSpec with Matchers {
       deallocate(0, 4)
       deallocate(1, 5)
       check_free(0, true, 1)
-       deallocate_step(0,1)
+      deallocate_step(0,1)
 // cycle 11 : check 2 3
       check_free(0, true, 2)
       check_free(1, true, 3)
@@ -69,12 +69,16 @@ class RefCounter_test extends AnyFreeSpec with Matchers {
         dut.clock.step()
         dut.io.allocate(port0).valid.poke(false.B)
         dut.io.allocate(port1).valid.poke(false.B)
+        dut.io.allocate(port0).bits.poke(0.U)
+        dut.io.allocate(port1).bits.poke(0.U)
       }
 
       def deallocate_step(port0: Int, port1: Int): Unit = {
         dut.clock.step()
         dut.io.deallocate(port0).valid.poke(false.B)
         dut.io.deallocate(port1).valid.poke(false.B)
+        dut.io.deallocate(port0).bits.poke(0.U)
+        dut.io.deallocate(port1).bits.poke(0.U)
       }
 
       def reset(): Unit = {

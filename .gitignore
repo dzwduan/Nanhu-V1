@@ -26,3 +26,6 @@ rocket-chip
 difftest
 .idea
 .vscode
+build
+project
+.sv_cache/files

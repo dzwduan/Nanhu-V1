@@ -26,14 +26,14 @@ class RefCounter(implicit p : Parameter) extends CoreModule {
   for ( i <- 0 until CommitWidth) {
   
     // 从非零值变为零值
-    val isNonZero =  refcnt(deallocate(i).bits) =/= 0.U
+    val isNonZero = deallocate(i).valid && refcnt(deallocate(i).bits) =/= 0.U
+    val canFree = refcntDec(deallocate(i).bits) === (refcnt(deallocate(i).bits) + refcntInc(deallocate(i).bits))
 
     // 不重复释放
-    val hasDup = deallocate.take(i).map(d => d.valid && deallocate(i).bits === d.bits)
+    val hasDup = deallocate.take(i).map(d => deallocate(i).valid && deallocate(i).bits === d.bits)
     val dupBlock = if (i == 0) false.B else VecInit(hasDup).asUInt.orR
-
-    freeregs(i).valid := RegNext(isNonZero && !dupBlock) && RegNext(deallocate(i).valid)
-    freeregs(i).bits  := Mux(freeregs(i).valid, RegNext(deallocate(i).bits), 0.U)
+    freeregs(i).valid := RegNext(isNonZero && !dupBlock) && RegNext(canFree)
+    freeregs(i).bits := RegNext(deallocate(i).bits)
   }
 
   for (i <- 0 until p.NRPhyRegs) {
