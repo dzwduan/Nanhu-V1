@@ -19,18 +19,24 @@ class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
 
   val noWalk = !io.walk && !io.redirect
 
+  //FIX: 一拍不止加一个
+
   // 分配空闲物理寄存器，要从freelist中拿出， head++, 需要考虑非空
   for (i <- 0 until RenameWidth) {
-    val allocate_ok = io.allocateReq(i) && !isEmpty(tailPtrNext, headPtr) && noWalk && io.canAllocate && io.doAllocate
-    io.allocatePhyReg(i) := Mux(allocate_ok, headVal, 0.U)
-    headPtrNext              :=  Mux(allocate_ok, headPtr + 1.U, headPtr)
+    val not_full    = !isFull(tailPtrNext, headPtr)
+    val allocate_ok = io.allocateReq(i) && noWalk && io.canAllocate && io.doAllocate
+    io.allocatePhyReg(i) := headVal
+    val allocateCnt = PopCount(io.allocateReq)
+    headPtrNext := Mux(allocate_ok, headPtr + allocateCnt, headPtr)
   }
 
   // 指令commit，加入freelist, tail++， 需要考虑非满, 条件不满足，不会进行
   for (i <- 0 until CommitWidth) {
-    val free_ok = io.freeReq(i) && !isFull(tailPtrNext, headPtr) && noWalk
-    freelist(tailPtrNext.value) := Mux(free_ok, io.freePhyReg(i), 0.U)
-    tailPtrNext                 := Mux(free_ok, tailPtr + 1.U, tailPtrNext) 
+    val not_empty = !isEmpty(tailPtrNext, headPtr)
+    val free_ok   = io.freeReq(i) && noWalk && not_empty
+    freelist(tailPtrNext.value) := io.freePhyReg(i)
+    val freeCnt = PopCount(io.freeReq)
+    tailPtrNext := Mux(free_ok, tailPtr + freeCnt, tailPtrNext)
   }
 
   // 需要检查是否能回退足够的大小

@@ -44,7 +44,7 @@ class CircularQueuePtr[T <: CircularQueuePtr[T]](val entries : Int) extends Bund
 
 trait HasCircularQueuePtrHelper {
   def isEmpty[T <: CircularQueuePtr[T]](enq_ptr : T, deq_ptr : T) : Bool = {
-    enq_ptr === deq_ptr
+     enq_ptr.flag === deq_ptr.flag && enq_ptr === deq_ptr
   }
 
   def isFull[T <: CircularQueuePtr[T]](enq_ptr : T, deq_ptr : T) : Bool = {

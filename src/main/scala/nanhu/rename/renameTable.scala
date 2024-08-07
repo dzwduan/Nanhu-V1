@@ -18,8 +18,6 @@ class RatWritePort(implicit p: Parameter) extends CoreBundle {
   val data = UInt(PhyRegIdxWidth.W)
 }
 
-//TODO: 当前的bug在于, write直接写入spec_table，导致read addr发出时，spec_table已经有了数据，可以当拍读到，与验证文档不符合
-
 class RenameTable(implicit p: Parameter) extends CoreModule {
   val io = IO(new Bundle {
     val readPorts = Vec(3 * RenameWidth, new RatReadPort)
@@ -52,7 +50,6 @@ class RenameTable(implicit p: Parameter) extends CoreModule {
 
   spec_table := spec_table_next
 }
-
 
 
 object RenameTable extends App {
