@@ -2,6 +2,9 @@ BUILD_DIR = ./build
 
 PRJ = nanhu
 
+.PHONY: default
+default: wave ;
+
 test:
 	mill -i $(PRJ).test
 
@@ -34,7 +37,5 @@ sim:
 
 wave:
 	gtkwave build/workdir-default/trace.vcd -A wave.gtkw
-	
-# gtkwave build/workdir-default/trace.vcd  -A rename.gtkw
 
 

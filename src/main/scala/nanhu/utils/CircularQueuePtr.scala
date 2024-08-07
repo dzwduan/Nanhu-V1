@@ -11,7 +11,7 @@ class CircularQueuePtr[T <: CircularQueuePtr[T]](val entries : Int) extends Bund
   val flag = Bool()
 
   def +(v : UInt) : T = {
-    val ret = Wire(this.asInstanceOf[T])
+    val ret = WireInit(this.asInstanceOf[T])
     if (isPow2(entries)) {
         ret := (Cat(flag, value) + Cat(0.U(1.W), v)).asTypeOf(ret)
     } else {
@@ -23,9 +23,12 @@ class CircularQueuePtr[T <: CircularQueuePtr[T]](val entries : Int) extends Bund
     ret
   }
 
-  def -(v : T) : UInt = {
-    require(entries == v.entries)
-    Mux(flag === v.flag, value - v.value, value - v.value + entries.U)
+  def -(v : UInt) : T = {
+    val flipped_new_ptr = this + (this.entries.U - v)
+    val new_ptr = Wire(this.asInstanceOf[T].cloneType)
+    new_ptr.flag := !flipped_new_ptr.flag
+    new_ptr.value := flipped_new_ptr.value
+    new_ptr
   }
 
   def ===(that : T) : Bool = {
