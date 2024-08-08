@@ -3,9 +3,8 @@ package nanhu.utils
 import chisel3._
 import chisel3.util._
 
-import scala.math.min
 
-class CircularShift(data: UInt) {
+case class CircularShift(data: UInt) {
   private def helper(step: Int, isLeft: Boolean): UInt = {
     if (step == 0) {
       data

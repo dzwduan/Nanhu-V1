@@ -33,7 +33,7 @@ class StdFreeList_test extends AnyFreeSpec with Matchers {
 
       def allocate_step() : Unit = {
         dut.clock.step()
-        dut.io.doAllocate.poke(true.B)
+        dut.io.doAllocate.poke(false.B)
         for (i <- 0 until p.RenameWidth) {
           dut.io.allocateReq(i).poke(false.B)
         }

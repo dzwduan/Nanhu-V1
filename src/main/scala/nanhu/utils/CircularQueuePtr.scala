@@ -13,7 +13,7 @@ class CircularQueuePtr[T <: CircularQueuePtr[T]](val entries : Int) extends Bund
   def +(v : UInt) : T = {
     val ret = WireInit(this.asInstanceOf[T])
     if (isPow2(entries)) {
-        ret := (Cat(flag, value) + Cat(0.U(1.W), v)).asTypeOf(ret)
+        ret := (Cat(this.flag, this.value) + v).asTypeOf(ret)
     } else {
         val tmp = Cat(0.U(1.W), value) + v
         val reverse = tmp >= entries.U

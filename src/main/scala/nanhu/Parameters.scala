@@ -11,7 +11,7 @@ case class Parameter (
   CommitWidth: Int = 6,
 
   NRArchRegs: Int = 32,
-  NRPhyRegs:   Int = 128,
+  NRPhyRegs:   Int = 192,
   RobSize : Int = 192,
 )
 
@@ -27,7 +27,7 @@ trait HasNanhuParameters {
   val CommitWidth = p.CommitWidth
 
   val RobSize = p.RobSize
-  val PhyRegIdxWidth = log2Ceil(p.NRPhyRegs)
+  val PhyRegIdxWidth = log2Up(p.NRPhyRegs)
 }
 
 abstract class CoreBundle(implicit val p : Parameter) extends Bundle with HasNanhuParameters
