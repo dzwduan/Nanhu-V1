@@ -10,39 +10,55 @@ import simulation.Simulator._
 class StdFreeList_test extends AnyFreeSpec with Matchers {
   "StdFreeList_test pass" in {
     implicit val p = Parameter()
-    val res = simulate(new StdFreeList(6)) { dut =>
+    val res = simulate(new StdFreeList(p.NRPhyRegs)) { dut =>
 
-      reset()
+      dut.reset.poke(true.B)
+      dut.clock.step()
+      dut.reset.poke(false.B)
+      dut.clock.step()
 
-      // // test allocate
-      // set_walk(false)
-      // set_redirect(false)
-      // set_allocate(Array(false, false, true, true, true, false))
-      // // check_allocate(Array(32, 32, 32, 33, 34, 34))
-      // allocate_step()
+      val randBool = scala.util.Random.nextBoolean
+      val randInt = scala.util.Random.nextInt(p.NRPhyRegs)
 
-      // set_allocate(Array(true, false, true, false, true, false))
-      // allocate_step()
+      // check init
+      dut.io.canAllocate.expect(true.B)
+      dut.io.allocatePhyReg.foreach(_.expect(32.U))
+      dut.io.freePhyReg.foreach(_.expect(0.U))
 
-      // set_allocate(Array(false, true, true, true, false, false))
-      // allocate_step()
+      // random check allocate n times
+      for ( i <- 0 until randInt) {
+        set_walk(false)
+        set_redirect(false)
+        set_allocate(Array.fill(p.RenameWidth)(randBool))
+        allocate_step()
+      }
 
-      // // set free
-      // set_free(Array(true, true, true, false, true, false))
-      // set_free_vals(Array(62, 63, 64, 65, 66, 67))
-      // free_step()
-      // // add more freelist test
-      // set_free(Array(true, true, true, true, true, true))
-      // set_free_vals(Array(68, 69, 70, 71, 72, 73))
-      // free_step()
-      // set_free(Array(false, false,true,false,false,false))
-      // set_free_vals(Array(10,10,10,10,10,10))
-      // free_step()
 
-      // test walk
-      set_walk(true)
-      set_back(1)
+      // check free n times
+      for (i <- 0 until randInt) {
+        set_free(Array.fill(p.CommitWidth)(randBool))
+        set_free_vals(Array.fill(p.CommitWidth)(randInt))
+        free_step()
+      }
 
+      // check stepBack n times
+      for (i <- 0 until randInt) {
+        set_back(randInt)
+      }
+
+      // both check allocate free stepBack
+      for (i <- 0 until randInt) {
+        set_walk(false)
+        set_redirect(false)
+        set_allocate(Array.fill(p.RenameWidth)(randBool))
+        allocate_step()
+
+        set_free(Array.fill(p.CommitWidth)(randBool))
+        set_free_vals(Array.fill(p.CommitWidth)(randInt))
+        free_step()
+
+        set_back(randInt)
+      }
 
 
       def set_walk(v : Boolean) : Unit = {
@@ -102,12 +118,7 @@ class StdFreeList_test extends AnyFreeSpec with Matchers {
       }
 
 
-      def reset(): Unit = {
-        dut.reset.poke(true.B)
-        dut.clock.step()
-        dut.reset.poke(false.B)
-        dut.clock.step()
-      }
+
 
     }
   }

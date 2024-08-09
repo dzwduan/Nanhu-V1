@@ -46,7 +46,7 @@ class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
   // stepback should update headptr
   headPtr := Mux(io.walk,  headPtr - io.stepBack, Mux(io.doAllocate && io.canAllocate, headPtrNext, headPtr))
   
-  // tailptr如果空间不够，需要等一拍才能操作
+  // tailptr如果空间不够，需要等一拍才能操作? 没必要
   tailPtr := Mux(io.freeReq.reduce(_ || _), tailPtrNext, tailPtr)
   
   val enableCheck = true
@@ -66,7 +66,7 @@ class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
     ref.io.stepBack    := io.stepBack
 
     for (i <- 0 until size) {
-      assert(ref.freeList(i) === freelist(i), s"freelist failed @ ${i}")
+      assert(ref.out.freelist(i) === freelist(i), s"freelist failed @ ${i}")
     }
 
   }
@@ -80,8 +80,15 @@ class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
 
 class StdFreeListCheck(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
 
+  val out = IO(new Bundle{
+    val freelist = Output(Vec(size, UInt(PhyRegIdxWidth.W)))
+  })
+
   val freeList = RegInit(VecInit(Seq.tabulate(size)(i => (i + 32).U(PhyRegIdxWidth.W))))
   val headPtr  = RegInit(FreeListPtr(false, 0))
+
+  dontTouch(freeList)
+  out.freelist := freeList
 
   val headPtrOH      = RegInit(1.U(size.W))
   val headPtrOHShift = CircularShift(headPtrOH)
