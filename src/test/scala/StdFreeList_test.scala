@@ -10,7 +10,7 @@ import simulation.Simulator._
 class StdFreeList_test extends AnyFreeSpec with Matchers {
   "StdFreeList_test pass" in {
     implicit val p = Parameter()
-    val res = simulate(new StdFreeList(p.NRPhyRegs)) { dut =>
+    val res = simulate(new StdFreeList(6)) { dut =>
 
       reset()
 
@@ -27,17 +27,23 @@ class StdFreeList_test extends AnyFreeSpec with Matchers {
       // set_allocate(Array(false, true, true, true, false, false))
       // allocate_step()
 
-      // set free
-      set_free(Array(true, true, true, false, true, false))
-      set_free_vals(Array(62, 63, 64, 65, 66, 67))
-      free_step()
-      // add more freelist test
-      set_free(Array(true, true, true, true, true, true))
-      set_free_vals(Array(68, 69, 70, 71, 72, 73))
-      free_step()
-      set_free(Array(false, false,true,false,false,false))
-      set_free_vals(Array(10,10,10,10,10,10))
-      free_step()
+      // // set free
+      // set_free(Array(true, true, true, false, true, false))
+      // set_free_vals(Array(62, 63, 64, 65, 66, 67))
+      // free_step()
+      // // add more freelist test
+      // set_free(Array(true, true, true, true, true, true))
+      // set_free_vals(Array(68, 69, 70, 71, 72, 73))
+      // free_step()
+      // set_free(Array(false, false,true,false,false,false))
+      // set_free_vals(Array(10,10,10,10,10,10))
+      // free_step()
+
+      // test walk
+      set_walk(true)
+      set_back(1)
+
+
 
       def set_walk(v : Boolean) : Unit = {
         dut.io.walk.poke(v.B)
@@ -45,6 +51,10 @@ class StdFreeList_test extends AnyFreeSpec with Matchers {
 
       def set_redirect(v : Boolean) : Unit = {
         dut.io.redirect.poke(v.B)
+      }
+
+      def set_back(v : Int) : Unit = {
+        dut.io.stepBack.poke(v.U)
       }
 
       def allocate_step() : Unit = {

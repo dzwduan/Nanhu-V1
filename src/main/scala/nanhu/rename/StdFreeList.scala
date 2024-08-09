@@ -21,7 +21,7 @@ class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
 
   headPtrNext := headPtr + PopCount(io.allocateReq)
   // tailPtrNext := tailPtr + PopCount(io.freeReq)
-  headPtr     := headPtrNext
+  // headPtr     := headPtrNext
   tailPtr     := tailPtrNext
 
   val headOH = UIntToOH(headPtr.value)
@@ -42,10 +42,13 @@ class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
       freelist(tailPtrNext.value) := RegNext(io.freePhyReg(i))
     }
   }
-  
-  
 
-
+  // stepback should update headptr
+  headPtr := Mux(io.walk,  headPtr - io.stepBack, Mux(io.doAllocate && io.canAllocate, headPtrNext, headPtr))
+  
+  // tailptr如果空间不够，需要等一拍才能操作
+  tailPtr := Mux(io.freeReq.reduce(_ || _), tailPtrNext, tailPtr)
+  
   val enableCheck = true
 
   if (enableCheck) {
