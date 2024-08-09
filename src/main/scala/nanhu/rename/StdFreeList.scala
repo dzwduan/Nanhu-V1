@@ -5,6 +5,7 @@ import chisel3._
 import chisel3.util._
 import nanhu._
 import nanhu.utils._
+import chisel3.layer.{Convention, Layer, block}
 
 class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
   // freelist存放空闲的物理寄存器号，默认0-31已有映射，所以32开始
@@ -22,7 +23,7 @@ class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
   headPtrNext := headPtr + PopCount(io.allocateReq)
   // tailPtrNext := tailPtr + PopCount(io.freeReq)
   // headPtr     := headPtrNext
-  tailPtr     := tailPtrNext
+  tailPtr := tailPtrNext
 
   val headOH = UIntToOH(headPtr.value)
   // 这里使用CircularShift因为case所以不需要new，并没有使用object
@@ -37,24 +38,24 @@ class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
   }
 
   for (i <- 0 until CommitWidth) {
-    tailPtrNext := tailPtr + PopCount(io.freeReq.take(i+1).map(a => a === true.B))
-    when (io.freeReq(i)) {
+    tailPtrNext := tailPtr + PopCount(io.freeReq.take(i + 1).map(a => a === true.B))
+    when(io.freeReq(i)) {
       freelist(tailPtrNext.value) := RegNext(io.freePhyReg(i))
     }
   }
 
   // stepback should update headptr
-  headPtr := Mux(io.walk,  headPtr - io.stepBack, Mux(io.doAllocate && io.canAllocate, headPtrNext, headPtr))
-  
+  headPtr := Mux(
+    io.walk,
+    headPtr - io.stepBack,
+    Mux(io.doAllocate && io.canAllocate && noDirOrWalk, headPtrNext, headPtr)
+  )
+
   // tailptr如果空间不够，需要等一拍才能操作? 没必要
   tailPtr := Mux(io.freeReq.reduce(_ || _), tailPtrNext, tailPtr)
-  
-  val enableCheck = true
 
-  if (enableCheck) {
+  block(Verification) {
     val ref = Module(new StdFreeListCheck(size))
-    // io.allocatePhyReg := DontCare
-    // io.canAllocate := DontCare
     dontTouch(ref.io.canAllocate)
     dontTouch(ref.io.allocatePhyReg)
     ref.io.freeReq     := io.freeReq
@@ -66,27 +67,25 @@ class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
     ref.io.stepBack    := io.stepBack
 
     for (i <- 0 until size) {
-      assert(ref.out.freelist(i) === freelist(i), s"freelist failed @ ${i}")
+      block(Verification.Assert) {
+        assert(ref.out.freelist(i) === freelist(i), p"freelist failed @ ${i}")
+      }
+      block(Verification.Debug) {
+        printf(p"dut f[$i]: ${freelist(i)}, ref f[$i]:${ref.out.freelist(i)}\n")
+      }
     }
-
   }
+
 }
-
-
-
-
-
-
 
 class StdFreeListCheck(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
 
-  val out = IO(new Bundle{
+  val out = IO(new Bundle {
     val freelist = Output(Vec(size, UInt(PhyRegIdxWidth.W)))
   })
 
   val freeList = RegInit(VecInit(Seq.tabulate(size)(i => (i + 32).U(PhyRegIdxWidth.W))))
   val headPtr  = RegInit(FreeListPtr(false, 0))
-
   dontTouch(freeList)
   out.freelist := freeList
 
