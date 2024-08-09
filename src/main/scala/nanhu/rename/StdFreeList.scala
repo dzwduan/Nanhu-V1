@@ -20,7 +20,7 @@ class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
   io.canAllocate := RenameWidth.U <= distanceBetween(tailPtr, headPtr)
 
   headPtrNext := headPtr + PopCount(io.allocateReq)
-  tailPtrNext := tailPtr + PopCount(io.freeReq)
+  // tailPtrNext := tailPtr + PopCount(io.freeReq)
   headPtr     := headPtrNext
   tailPtr     := tailPtrNext
 
@@ -37,8 +37,9 @@ class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
   }
 
   for (i <- 0 until CommitWidth) {
+    tailPtrNext := tailPtr + PopCount(io.freeReq.take(i+1).map(a => a === true.B))
     when (io.freeReq(i)) {
-      freelist(tailPtr.value) := io.freePhyReg(i)
+      freelist(tailPtrNext.value) := RegNext(io.freePhyReg(i))
     }
   }
   
@@ -61,8 +62,10 @@ class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size) {
     ref.io.freePhyReg  := io.freePhyReg
     ref.io.stepBack    := io.stepBack
 
-    // assert(ref.io.canAllocate === io.canAllocate, "canAllocate failed") 
-    // assert(ref.io.allocatePhyReg === io.allocatePhyReg, "allocatePhyReg failed")
+    for (i <- 0 until size) {
+      assert(ref.freeList(i) === freelist(i), s"freelist failed @ ${i}")
+    }
+
   }
 }
 
