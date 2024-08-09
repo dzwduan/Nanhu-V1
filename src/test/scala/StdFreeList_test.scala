@@ -20,7 +20,12 @@ class StdFreeList_test extends AnyFreeSpec with Matchers {
       set_allocate(Array(false, false, true, true, true, false))
       // check_allocate(Array(32, 32, 32, 33, 34, 34))
       allocate_step()
-      dut.clock.step(5)
+
+      set_allocate(Array(true, false, true, false, true, false))
+      allocate_step()
+
+      set_allocate(Array(false, true, true, true, false, false))
+      allocate_step()
 
 
       def set_walk(v : Boolean) : Unit = {
@@ -37,6 +42,7 @@ class StdFreeList_test extends AnyFreeSpec with Matchers {
         for (i <- 0 until p.RenameWidth) {
           dut.io.allocateReq(i).poke(false.B)
         }
+        dut.clock.step()
       }
 
       def set_allocate(v : Array[Boolean]) : Unit = {
