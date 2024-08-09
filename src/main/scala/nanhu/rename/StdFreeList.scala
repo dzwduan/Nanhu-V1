@@ -26,17 +26,16 @@ class StdFreeList(size: Int)(implicit p: Parameter) extends BaseFreeList(size){
   val headOH = UIntToOH(headPtr.value)
   // 这里使用CircularShift因为case所以不需要new，并没有使用object
   val headOHCir = CircularShift(headOH)
-  // 将每一拍对应的每一个allocaeReq转化为对应的OneHot
-  val headOHCirVec = VecInit(Seq.tabulate(RenameWidth)(headOHCir.left))
+  // 将每一拍对应的每一个allocaeReq转化为对应的OneHot，循环左移类似于++
+  val headOHCirVec = VecInit(Seq.tabulate(RenameWidth+1)(headOHCir.left))
 
-  val allocCandidates = RegInit(VecInit(headOHCirVec.map(h => Mux1H(h, freelist))))
+  val allocCandidates = VecInit(headOHCirVec.map(h => Mux1H(h, freelist)))
 
   for (i <- 0 until RenameWidth) {
-    io.allocatePhyReg := allocCandidates(PopCount())
+    io.allocatePhyReg(i) := allocCandidates(PopCount(io.allocateReq.take(i).map(a => a === true.B)))
   }
 
 
-  io.allocatePhyReg := DontCare
 }
 
 object StdFreeList extends App {
